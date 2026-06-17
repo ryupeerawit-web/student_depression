@@ -1,3 +1,5 @@
+SET SQL_SAFE_UPDATES = 1;
+
 CREATE TABLE Users (
 user_id INT AUTO_INCREMENT PRIMARY KEY,
 fullname VARCHAR(100) NOT NULL,
@@ -5,6 +7,22 @@ age INT,
 gender ENUM('Male','Female','Other'),
 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE Users
+ADD first_name VARCHAR(50),
+ADD last_name VARCHAR(50);
+
+ALTER TABLE Users
+MODIFY COLUMN last_name VARCHAR(50)
+AFTER first_name;
+
+UPDATE Users
+SET
+    first_name = SUBSTRING_INDEX(fullname, ' ', 1),
+    last_name = SUBSTRING_INDEX(fullname, ' ', -1);
+    
+ALTER TABLE Users
+DROP COLUMN fullname;
 
 CREATE TABLE Questions (
 question_id INT PRIMARY KEY,
@@ -35,8 +53,12 @@ REFERENCES Users(user_id)
 );
 
 ALTER TABLE Assessments
-MODIFY COLUMN assessment_date DATETIME DEFAULT CURRENT_TIMESTAMP
-AFTER result_level;
+MODIFY COLUMN academic_year INT NOT NULL
+AFTER semester;
+
+ALTER TABLE Assessments
+ADD academic_year INT NOT NULL,
+ADD semester TINYINT NOT NULL CHECK (semester IN (1,2));
 
 
 CREATE TABLE Answers (
@@ -134,4 +156,36 @@ create view assignment_result as
 select u.user_id, u.fullname, a.assessment_id, a.total_score, a.result_level, a.assessment_date from users u join assessments a
 where u.user_id = a.user_id;
 
-SELECT * FROM assignment_result;
+SELECT * FROM assignment_result 
+where user_id = 1;
+
+select * from users
+order by convert(fullname using tis620);
+
+UPDATE Assessments
+SET academic_year = '2568',
+    semester = 1;
+    
+DELIMITER $$
+
+CREATE TRIGGER check_duplicate_assessment
+BEFORE INSERT ON Assessments
+FOR EACH ROW
+BEGIN
+
+    IF EXISTS (
+        SELECT 1
+        FROM Assessments
+        WHERE user_id = NEW.user_id
+          AND academic_year = NEW.academic_year
+          AND semester = NEW.semester
+    ) THEN
+
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'ผู้ใช้คนนี้ได้ทำแบบประเมินในปีการศึกษาและเทอมนี้แล้ว';
+
+    END IF;
+
+END$$
+
+DELIMITER ;

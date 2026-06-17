@@ -1,4 +1,4 @@
- CREATE TABLE Students (
+CREATE TABLE Students (
 	student_id int auto_increment primary key,
     student_code varchar(20) unique not null,
     first_name varchar(100) not null,
