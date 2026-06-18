@@ -189,3 +189,6 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+CREATE INDEX idx_assessment_check
+ON Assessments(user_id, academic_year, semester);
